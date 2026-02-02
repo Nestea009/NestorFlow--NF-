@@ -20,13 +20,12 @@ public:
     void setOutputVal(double val) { outputVal = val; }
     double getOutputVal() const { return outputVal; }
     void feedForward(const Layer &prevLayer);
-
+    vector<Connection> conections;
 private:
     static double activationFunction(string funcion);
     int myIndex;
     double gradient;
     double outputVal;
-    vector<Connection> conections;
 };
 
 class Net {
@@ -36,6 +35,7 @@ public:
     void feedForward(const vector<double> &inputVals);
     void backPropagation();
     void getResults(vector<double> &resultVals) const;
+    void showStructure() const;
 private:
     vector<Layer> layers; 
     double err;
