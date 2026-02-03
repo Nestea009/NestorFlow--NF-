@@ -3,7 +3,11 @@
 
 #include <vector>
 #include <iostream>
+#include <math.h>
 using namespace std;
+
+const double BIAS_PUNISH_RATE = 5.0;
+const double WEIGHT_PUNISH_RATE = 1.0;
 
 struct Connection {
     double weight;
@@ -23,9 +27,20 @@ public:
     vector<Connection> conections;
     int myIndex;
 private:
-    static double activationFunction(const string &funcion);
+    double activationFunction(const string &funcion);
     double gradient;
     double outputVal;
+    double bias;
+    // Needs to be more randomized
+    double getRandomWeight() {
+        return (double(rand()) / double(RAND_MAX)) / WEIGHT_PUNISH_RATE;
+    }
+    double getRandomBias() {
+        return (double(rand()) / double(RAND_MAX)) / BIAS_PUNISH_RATE;
+    }
+    static double sigmoidFunction(const double x) {
+        return 1.0 / (1.0 + exp(-x));
+    }
 };
 
 class Net {

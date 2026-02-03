@@ -2,13 +2,12 @@
 using namespace std;
 
 int main() {
+    Net myNet({2, 6, 6, 6, 7, 2});
 
-    Neuron myNeuron(3, 0);    
-    Net myNet({4, 3, 6, 2});
-
-    vector<double> inputs = {0.2, 0.5, 0.7, 0.8};
+    vector<double> inputs = {0.2, 0.1};
 
     myNet.feedForward(inputs, "ReLU", "sigmoid");
+    myNet.showStructure();
     myNet.getResults();
     
 
