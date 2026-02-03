@@ -19,11 +19,11 @@ public:
     ~Neuron();
     void setOutputVal(double val) { outputVal = val; }
     double getOutputVal() const { return outputVal; }
-    void feedForward(const Layer &prevLayer);
+    void feedForward(const Layer &prevLayer, const string &function);
     vector<Connection> conections;
-private:
-    static double activationFunction(string funcion);
     int myIndex;
+private:
+    static double activationFunction(const string &funcion);
     double gradient;
     double outputVal;
 };
@@ -32,9 +32,9 @@ class Net {
 public:
     Net(const vector<size_t> &topology);
     ~Net();
-    void feedForward(const vector<double> &inputVals);
+    void feedForward(const vector<double> &inputVals, const string &hiddenFunction, const string &outputFunction);
     void backPropagation();
-    void getResults(vector<double> &resultVals) const;
+    void getResults() const;
     void showStructure() const;
 private:
     vector<Layer> layers; 

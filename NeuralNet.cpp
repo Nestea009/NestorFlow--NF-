@@ -16,8 +16,22 @@ Neuron::Neuron(int numOutputs, int myIndex) {
     for(int i = 0; i<numOutputs; i++) {
         this->conections.insert(this->conections.end(), Connection());
         this->conections.back().weight = getRandomWeight();
-        this->conections.back().deltaWeight = 0.0;  //Esto tampoco importa
-        //cout << "Neuron " << myIndex << " connection " << i << " weight initialized to " << this->conections.back().weight << endl;
+        //this->conections.back().deltaWeight = 0.0;  //Esto tampoco importa
+    }
+}
+
+double Neuron::activationFunction(const string &funcion) {
+    if (funcion == "sigmoid") {
+        cout << "Se haría Sigmoid" << endl;
+        return 0;
+    }
+    else if (funcion == "ReLU") {
+        cout << "Se haría ReLU" << endl;
+        return 0;
+    }
+    else {
+        cout << "Not defined" << endl;
+        return -1;
     }
 }
 
@@ -25,14 +39,17 @@ Neuron::~Neuron() {
     // Se supone que se hace solo?
 }
 
-void Neuron::feedForward(const Layer &prevLayer) {
+void Neuron::feedForward(const Layer &prevLayer, const string &function) {
     // Takes the previous layer and adds the previous values, multiplied to its corresponding weight.
     // x = sum(w*x) from 0 until layerMAX
+    // Además, f(x) Función de Activación
+    cout << "Primer FeedForward" << endl;
     double sum = 0;
     for(int i = 0; i < prevLayer.size(); i++) {
-        sum += prevLayer.at(i).conections.at(prevLayer.at(i).myIndex).weight * prevLayer.at(i).outputVal;
-        // Sin terminar
+        sum += prevLayer.at(i).conections.at(this->myIndex).weight * prevLayer.at(i).outputVal;
     }
+    outputVal = sum;
+    activationFunction(function);
 }
 
 // - - - Net - - - 
@@ -56,21 +73,39 @@ Net::~Net() {
     // Nada?
 }
 
-void Net::feedForward(const vector<double> &inputVals) {
-    for (int i = 0; i < this->layers.size(); i++) {
-        for(int j = 1; j < this->layers.at(i).size(); i++) {
-            // Empieza en 1 porque la input no necesita calcular
-            this->layers.at(i).at(j).feedForward(this->layers.at(i-1));
+void Net::feedForward(const vector<double> &inputVals,const string &hiddenFunction,const string &outputFunction) {
+    cout << "Empezamos el feedForward: " << endl;
+    // Hay que gestionar la input layer
+
+    for (int a = 0; a < inputVals.size(); a++) {
+        this->layers.front().at(a).setOutputVal(inputVals.at(a));
+    }
+
+    cout << "Valores iniciales puestos" << endl;
+
+    for (int i = 1; i < this->layers.size()-1; i++) {
+        cout << "i = " << i << endl;
+        for(int j = 0; j < this->layers.at(i).size(); j++) {
+            cout << "j = " << j << endl;
+            this->layers.at(i).at(j).feedForward(this->layers.at(i-1), hiddenFunction);
         }
+    }
+    // Gestión de la Output Layer
+    // Esto necesita ser probado
+    for(int i = 0; i < this->layers.at(this->layers.size()).size(); i++) {
+        this->layers.at(this->layers.size()).at(i).feedForward(this->layers.at(i-1), outputFunction);
     }
 }
 
 void Net::backPropagation() {
-    // It's very complicated
+
 }
 
-void Net::getResults(vector<double> &resultVals) const {
-    
+void Net::getResults() const {
+    cout << "Results:::" << endl;
+    for(int i = 0; i < this->layers.back().size(); i++) {
+        cout << "Neuron number " << this->layers.back().at(i).myIndex << ": " << this->layers.back().at(i).getOutputVal() << endl;
+    }
 }
 
 void Net::showStructure() const {
