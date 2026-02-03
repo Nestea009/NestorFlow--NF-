@@ -93,7 +93,15 @@ void Net::feedForward(const vector<double> &inputVals,const string &hiddenFuncti
     }
 }
 
-void Net::backPropagation() {
+void Net::backPropagation(const Layer &correctVals) {
+    Layer outputLayer = this->layers.at(this->layers.size()-1);
+    // 1º Err calc in Output
+
+    // 2º The Chain Rule
+
+    // 3º Propagation
+
+    // 4º Update the weights
 
 }
 

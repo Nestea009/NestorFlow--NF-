@@ -48,9 +48,21 @@ public:
     Net(const vector<size_t> &topology);
     ~Net();
     void feedForward(const vector<double> &inputVals, const string &hiddenFunction, const string &outputFunction);
-    void backPropagation();
+    void backPropagation(const Layer &correctVals);
     void getResults() const;
     void showStructure() const;
+    void LossFunction(const string &function) {
+        if (function == "MSE") {
+            // Mean Squared Error
+        }
+        else if (function == "MAE") {
+            //Mean Absolute Error
+
+        }
+        else {
+            cout << "No implementado aún" << endl;
+        }
+    }
 private:
     vector<Layer> layers; 
     double err;
