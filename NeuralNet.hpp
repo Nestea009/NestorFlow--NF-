@@ -19,18 +19,24 @@ typedef vector<Neuron> Layer;
 
 class Neuron {
 public:
-    Neuron(int numOutputs, int myIndex);
+    vector<Connection> conections;
+    int myIndex;
+    double gradient;
+    Neuron(int numOutputs, int myIndex, const string &activFunction);
     ~Neuron();
     void setOutputVal(double val) { outputVal = val; }
     double getOutputVal() const { return outputVal; }
     void feedForward(const Layer &prevLayer, const string &function);
-    vector<Connection> conections;
-    int myIndex;
+    double LossFunctionOutput(const string &function, const double Value);
+    double LossFunctionHidden(const string &function, const Layer &nextLayer);
 private:
-    double activationFunction(const string &funcion);
-    double gradient;
+    double activationFunction();
+    double activationFunctionDerivative();
+
+    string activationFun;
     double outputVal;
     double bias;
+
     // Needs to be more randomized
     double getRandomWeight() {
         return (double(rand()) / double(RAND_MAX)) / WEIGHT_PUNISH_RATE;
@@ -41,32 +47,26 @@ private:
     static double sigmoidFunction(const double x) {
         return 1.0 / (1.0 + exp(-x));
     }
+    static double sigmoidFunctionDerivative(const double x) {
+        cout << "Se haría sigmoidFunctionDerivative" << endl;
+        return x;
+    }
 };
 
 class Net {
 public:
-    Net(const vector<size_t> &topology);
+    Net(const vector<size_t> &topology, const string &hiddenFunction, const string &outputFunction);
     ~Net();
-    void feedForward(const vector<double> &inputVals, const string &hiddenFunction, const string &outputFunction);
-    void backPropagation(const Layer &correctVals);
+    void feedForward(const vector<double> &inputVals);
+    void backPropagation(const vector<double> &correctVals, const string &outputLoss, const string &hiddenLoss);
     void getResults() const;
     void showStructure() const;
-    void LossFunction(const string &function) {
-        if (function == "MSE") {
-            // Mean Squared Error
-        }
-        else if (function == "MAE") {
-            //Mean Absolute Error
-
-        }
-        else {
-            cout << "No implementado aún" << endl;
-        }
-    }
 private:
     vector<Layer> layers; 
     double err;
     double learning_rate = 0.05; // Change it to modify how the AI learns
+    string hiddenFunction;
+    string outputFunction;
 };
 
 #endif

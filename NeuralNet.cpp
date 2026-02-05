@@ -4,22 +4,28 @@ using namespace std;
 
 // - - - Neuron - - - 
 
-Neuron::Neuron(int numOutputs, int myIndex) {
+Neuron::Neuron(int numOutputs, int myIndex, const string &activFunction) {
     // I don't think I need to use 'new' for anything here
     this->myIndex = myIndex;
     for(int i = 0; i<numOutputs; i++) {
         this->conections.insert(this->conections.end(), Connection());
         this->conections.back().weight = getRandomWeight();
         this->bias = getRandomBias();
+        this->activationFun = activFunction;
+        this->gradient = 0;
         //this->conections.back().deltaWeight = 0.0;  //Esto tampoco importa
     }
 }
 
-double Neuron::activationFunction(const string &function) {
-    if (function == "sigmoid") {
+Neuron::~Neuron() {
+    // Se supone que se hace solo?
+}
+
+double Neuron::activationFunction() {
+    if (this->activationFun == "sigmoid") {
         return sigmoidFunction(this->outputVal);
     }
-    else if (function == "ReLU") {
+    else if (this->activationFun == "ReLU") {
         if (this->outputVal < 0) {
             return 0;
         }
@@ -37,8 +43,68 @@ double Neuron::activationFunction(const string &function) {
     }
 }
 
-Neuron::~Neuron() {
-    // Se supone que se hace solo?
+double Neuron::activationFunctionDerivative() {
+    if (this->activationFun == "sigmoid") {
+        cout << "Se haría la derivada de " << this->activationFun << endl;
+        return this->outputVal;
+    }
+    else if (this->activationFun == "ReLU") {
+        cout << "Se haría la derivada de " << this->activationFun << endl;
+        return this->outputVal;
+    }
+    // Próximamente habrá más
+    else {
+        cout << "Not defined" << endl;
+        return -1;
+    }
+}
+
+double Neuron::LossFunctionOutput(const string &function, const double Value) {
+    if (function == "MSE") {
+        // Mean Squared Error
+        double err = (this->outputVal - Value);
+        this->gradient = err * this->activationFunctionDerivative();
+        return err;
+    }
+    else if (function == "MAE") {
+        //Mean Absolute Error
+        double err = abs(this->outputVal - Value);
+        this->gradient = err * this->activationFunctionDerivative();
+        return err;
+    }
+    // Habrá más próximamente
+    else {
+        cout << "No implementado aún" << endl;
+        return -1;
+    }
+}
+
+double Neuron::LossFunctionHidden(const string &function, const Layer &nextLayer) {
+    if (function == "MSE") {
+        // Mean Squared Error
+        double err = 0.0;
+        for (int i = 0; i < nextLayer.size(); i++) {
+            err += nextLayer.at(i).conections.at(this->myIndex).weight * nextLayer.at(i).gradient;
+        }
+        err /= nextLayer.size();
+        this->gradient = err * this->activationFunctionDerivative();
+        return err;
+    }
+    else if (function == "MAE") {
+        //Mean Absolute Error
+        double err = 0.0;
+        for (int i = 0; i < nextLayer.size(); i++) {
+            err += abs(nextLayer.at(i).conections.at(this->myIndex).weight * nextLayer.at(i).gradient);
+        }
+        err /= nextLayer.size();
+        this->gradient = err * this->activationFunctionDerivative();
+        return err;
+    }
+    // Habrá más en un futuro
+    else {
+        cout << "No implementado aún" << endl;
+        return -1;
+    }
 }
 
 void Neuron::feedForward(const Layer &prevLayer, const string &function) {
@@ -50,23 +116,25 @@ void Neuron::feedForward(const Layer &prevLayer, const string &function) {
         sum += prevLayer.at(i).conections.at(this->myIndex).weight * prevLayer.at(i).outputVal;
     }
     this->outputVal = sum + this->bias;
-    this->outputVal = activationFunction(function);
+    this->outputVal = this->activationFunction();
 }
 
 // - - - Net - - - 
 
-Net::Net(const vector<size_t> &topology) {
+Net::Net(const vector<size_t> &topology, const string &hiddenFunction, const string &outputFunction) {
     err = -1;
+    this->hiddenFunction = hiddenFunction;
+    this->outputFunction = outputFunction;
     for (int i = 0; i < topology.size() - 1; i++) {
         this->layers.insert(this->layers.end(), Layer());
         for(int j = 0; j < topology.at(i); j++) {
-            this->layers.back().insert(this->layers.back().end(), Neuron(topology.at(i+1), j));
+            this->layers.back().insert(this->layers.back().end(), Neuron(topology.at(i+1), j, hiddenFunction));
         }
     }
     // Hay que handlear la ultima layer
     this->layers.insert(this->layers.end(), Layer());
     for (int i = 0; i < topology.back(); i++) {
-        this->layers.back().insert(this->layers.back().end(), Neuron(0, i));
+        this->layers.back().insert(this->layers.back().end(), Neuron(0, i, outputFunction));
     }
 }
 
@@ -74,7 +142,7 @@ Net::~Net() {
     // Nada?
 }
 
-void Net::feedForward(const vector<double> &inputVals,const string &hiddenFunction,const string &outputFunction) {
+void Net::feedForward(const vector<double> &inputVals) {
     // Hay que gestionar la input layer
     for (int a = 0; a < inputVals.size(); a++) {
         this->layers.front().at(a).setOutputVal(inputVals.at(a));
@@ -93,16 +161,29 @@ void Net::feedForward(const vector<double> &inputVals,const string &hiddenFuncti
     }
 }
 
-void Net::backPropagation(const Layer &correctVals) {
+// Falta por probar
+void Net::backPropagation(const vector<double> &correctVals, const string &outputLoss, const string &hiddenLoss) {
     Layer outputLayer = this->layers.at(this->layers.size()-1);
     // 1º Err calc in Output
-
+    for (int i = 0; i < this->layers.back().size(); i++) {
+        this->layers.back().at(i).LossFunctionOutput(outputLoss, correctVals.at(i));
+    }
     // 2º The Chain Rule
-
+    for(int i = this->layers.size() - 2; i > 0; i++) {
+        for (int i = 0; i < this->layers.back().size(); i++) {
+            this->layers.back().at(i).LossFunctionHidden(hiddenLoss, this->layers.at(i+1));
+        }
+    }
     // 3º Propagation
-
+    // (Hecho dentro de la LossFunction)
     // 4º Update the weights
-
+    for (int layer = 0; layer < this->layers.size(); layer++) {
+        for (int node = 0; node < this->layers.at(layer).size(); node++) {
+            for (int connection = 0; connection < this->layers.at(layer).at(node).conections.size(); connection++) {
+                this->layers.at(layer).at(node).conections.at(connection).weight = this->layers.at(layer).at(node).conections.at(connection).weight + (this->learning_rate * this->layers.at(layer).at(node).gradient * this->layers.at(layer).at(node).getOutputVal());
+            }
+        }
+    }
 }
 
 void Net::getResults() const {
