@@ -7,13 +7,12 @@ using namespace std;
 Neuron::Neuron(int numOutputs, int myIndex, const string &activFunction) {
     // I don't think I need to use 'new' for anything here
     this->myIndex = myIndex;
+    this->bias = getRandomBias();
+    this->gradient = 0;
+    this->activationFun = activFunction;
     for(int i = 0; i<numOutputs; i++) {
         this->conections.insert(this->conections.end(), Connection());
         this->conections.back().weight = getRandomWeight();
-        this->bias = getRandomBias();
-        this->activationFun = activFunction;
-        this->gradient = 0;
-        //this->conections.back().deltaWeight = 0.0;  //Esto tampoco importa
     }
 }
 
@@ -45,12 +44,18 @@ double Neuron::activationFunction() {
 
 double Neuron::activationFunctionDerivative() {
     if (this->activationFun == "sigmoid") {
-        cout << "Se haría la derivada de " << this->activationFun << endl;
-        return this->outputVal;
+        return sigmoidFunction(this->outputVal) * (1 - sigmoidFunction(this->outputVal));
     }
     else if (this->activationFun == "ReLU") {
-        cout << "Se haría la derivada de " << this->activationFun << endl;
-        return this->outputVal;
+        if (this->outputVal < 0) {
+            return 0;
+        }
+        else if (this->outputVal > 1) {
+            return 0;
+        }
+        else {
+            return 1;
+        }
     }
     // Próximamente habrá más
     else {
@@ -84,7 +89,7 @@ double Neuron::LossFunctionHidden(const string &function, const Layer &nextLayer
         // Mean Squared Error
         double err = 0.0;
         for (int i = 0; i < nextLayer.size(); i++) {
-            err += nextLayer.at(i).conections.at(this->myIndex).weight * nextLayer.at(i).gradient;
+            err += this->conections.at(i).weight * nextLayer.at(i).gradient;
         }
         err /= nextLayer.size();
         this->gradient = err * this->activationFunctionDerivative();
@@ -94,7 +99,7 @@ double Neuron::LossFunctionHidden(const string &function, const Layer &nextLayer
         //Mean Absolute Error
         double err = 0.0;
         for (int i = 0; i < nextLayer.size(); i++) {
-            err += abs(nextLayer.at(i).conections.at(this->myIndex).weight * nextLayer.at(i).gradient);
+            err += abs(this->conections.at(i).weight * nextLayer.at(i).gradient);
         }
         err /= nextLayer.size();
         this->gradient = err * this->activationFunctionDerivative();
@@ -168,14 +173,15 @@ void Net::backPropagation(const vector<double> &correctVals, const string &outpu
     for (int i = 0; i < this->layers.back().size(); i++) {
         this->layers.back().at(i).LossFunctionOutput(outputLoss, correctVals.at(i));
     }
+
     // 2º The Chain Rule
-    for(int i = this->layers.size() - 2; i > 0; i++) {
-        for (int i = 0; i < this->layers.back().size(); i++) {
-            this->layers.back().at(i).LossFunctionHidden(hiddenLoss, this->layers.at(i+1));
+    for(int i = this->layers.size() - 2; i > 0; i--) {        
+        for (int j = 0; j < this->layers.at(i).size(); j++) {
+            this->layers.at(i).at(j).LossFunctionHidden(hiddenLoss, this->layers.at(i+1));
         }
     }
-    // 3º Propagation
-    // (Hecho dentro de la LossFunction)
+
+    // 3º Propagation (Hecho dentro de la LossFunction)
     // 4º Update the weights
     for (int layer = 0; layer < this->layers.size(); layer++) {
         for (int node = 0; node < this->layers.at(layer).size(); node++) {

@@ -6,7 +6,7 @@
 #include <math.h>
 using namespace std;
 
-const double BIAS_PUNISH_RATE = 5.0;
+const double BIAS_PUNISH_RATE = 10.0;
 const double WEIGHT_PUNISH_RATE = 1.0;
 
 struct Connection {
@@ -47,10 +47,6 @@ private:
     static double sigmoidFunction(const double x) {
         return 1.0 / (1.0 + exp(-x));
     }
-    static double sigmoidFunctionDerivative(const double x) {
-        cout << "Se haría sigmoidFunctionDerivative" << endl;
-        return x;
-    }
 };
 
 class Net {
@@ -64,7 +60,7 @@ public:
 private:
     vector<Layer> layers; 
     double err;
-    double learning_rate = 0.05; // Change it to modify how the AI learns
+    double learning_rate = 0.3; // Change it to modify how the AI learns
     string hiddenFunction;
     string outputFunction;
 };
