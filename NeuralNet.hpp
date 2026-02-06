@@ -6,7 +6,7 @@
 #include <math.h>
 using namespace std;
 
-const double BIAS_PUNISH_RATE = 10.0;
+const double BIAS_PUNISH_RATE = 1.0;
 const double WEIGHT_PUNISH_RATE = 1.0;
 
 struct Connection {
@@ -21,7 +21,9 @@ class Neuron {
 public:
     vector<Connection> conections;
     int myIndex;
-    double gradient;
+    double gradientWeight;
+    double gradientBias;
+    double bias;
     Neuron(int numOutputs, int myIndex, const string &activFunction);
     ~Neuron();
     void setOutputVal(double val) { outputVal = val; }
@@ -35,15 +37,19 @@ private:
 
     string activationFun;
     double outputVal;
-    double bias;
 
-    // Needs to be more randomized
+
     double getRandomWeight() {
-        return (double(rand()) / double(RAND_MAX)) / WEIGHT_PUNISH_RATE;
+        srand(rand() * time(0));
+        if(rand() > RAND_MAX / 2) return (double(rand()) / double(RAND_MAX)) / WEIGHT_PUNISH_RATE;
+        else return -(double(rand()) / double(RAND_MAX)) / WEIGHT_PUNISH_RATE;
     }
     double getRandomBias() {
-        return (double(rand()) / double(RAND_MAX)) / BIAS_PUNISH_RATE;
+        srand(rand() * time(0));
+        if(rand() > RAND_MAX / 2) return (double(rand()) / double(RAND_MAX)) / BIAS_PUNISH_RATE;
+        else return -(double(rand()) / double(RAND_MAX)) / BIAS_PUNISH_RATE;
     }
+    
     static double sigmoidFunction(const double x) {
         return 1.0 / (1.0 + exp(-x));
     }
@@ -55,12 +61,13 @@ public:
     ~Net();
     void feedForward(const vector<double> &inputVals);
     void backPropagation(const vector<double> &correctVals, const string &outputLoss, const string &hiddenLoss);
-    void getResults() const;
+    void getResults(const vector<double> &correctVals) const;
     void showStructure() const;
+    void halfLearningRate() { this->learning_rate /= 2; }
 private:
     vector<Layer> layers; 
     double err;
-    double learning_rate = 0.3; // Change it to modify how the AI learns
+    double learning_rate = 0.05; // Change it to modify how the AI learns
     string hiddenFunction;
     string outputFunction;
 };

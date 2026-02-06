@@ -8,7 +8,7 @@ Neuron::Neuron(int numOutputs, int myIndex, const string &activFunction) {
     // I don't think I need to use 'new' for anything here
     this->myIndex = myIndex;
     this->bias = getRandomBias();
-    this->gradient = 0;
+    this->gradientWeight = 0;
     this->activationFun = activFunction;
     for(int i = 0; i<numOutputs; i++) {
         this->conections.insert(this->conections.end(), Connection());
@@ -67,14 +67,16 @@ double Neuron::activationFunctionDerivative() {
 double Neuron::LossFunctionOutput(const string &function, const double Value) {
     if (function == "MSE") {
         // Mean Squared Error
-        double err = (this->outputVal - Value);
-        this->gradient = err * this->activationFunctionDerivative();
+        double err = 0.5 * (this->outputVal - Value)*(this->outputVal - Value);
+        this->gradientWeight = err * this->activationFunctionDerivative();
+        this->gradientBias = err;
         return err;
     }
     else if (function == "MAE") {
         //Mean Absolute Error
         double err = abs(this->outputVal - Value);
-        this->gradient = err * this->activationFunctionDerivative();
+        this->gradientWeight = err * this->activationFunctionDerivative();
+        this->gradientBias = err;
         return err;
     }
     // Habrá más próximamente
@@ -89,20 +91,23 @@ double Neuron::LossFunctionHidden(const string &function, const Layer &nextLayer
         // Mean Squared Error
         double err = 0.0;
         for (int i = 0; i < nextLayer.size(); i++) {
-            err += this->conections.at(i).weight * nextLayer.at(i).gradient;
+            err += this->conections.at(i).weight * nextLayer.at(i).gradientWeight;
         }
         err /= nextLayer.size();
-        this->gradient = err * this->activationFunctionDerivative();
+        err = 0.5 * err * err;
+        this->gradientWeight = err * this->activationFunctionDerivative();
+        this->gradientBias = err;
         return err;
     }
     else if (function == "MAE") {
         //Mean Absolute Error
         double err = 0.0;
         for (int i = 0; i < nextLayer.size(); i++) {
-            err += abs(this->conections.at(i).weight * nextLayer.at(i).gradient);
+            err += abs(this->conections.at(i).weight * nextLayer.at(i).gradientWeight);
         }
         err /= nextLayer.size();
-        this->gradient = err * this->activationFunctionDerivative();
+        this->gradientWeight = err * this->activationFunctionDerivative();
+        this->gradientBias = err;
         return err;
     }
     // Habrá más en un futuro
@@ -127,6 +132,11 @@ void Neuron::feedForward(const Layer &prevLayer, const string &function) {
 // - - - Net - - - 
 
 Net::Net(const vector<size_t> &topology, const string &hiddenFunction, const string &outputFunction) {
+    if (topology.size() < 2) {
+        cout << "Error: The topology must have at least 2 layers (input and output)" << endl;
+        exit(1);
+    }
+    
     err = -1;
     this->hiddenFunction = hiddenFunction;
     this->outputFunction = outputFunction;
@@ -148,6 +158,11 @@ Net::~Net() {
 }
 
 void Net::feedForward(const vector<double> &inputVals) {
+    if (inputVals.size() != this->layers.front().size()) {
+        cout << "Error: The number of input values must be equal to the number of neurons in the input layer" << endl;
+        exit(1);
+    }
+
     // Hay que gestionar la input layer
     for (int a = 0; a < inputVals.size(); a++) {
         this->layers.front().at(a).setOutputVal(inputVals.at(a));
@@ -168,6 +183,11 @@ void Net::feedForward(const vector<double> &inputVals) {
 
 // Falta por probar
 void Net::backPropagation(const vector<double> &correctVals, const string &outputLoss, const string &hiddenLoss) {
+    if (correctVals.size() != this->layers.back().size()) {
+        cout << "Error: The number of correct values must be equal to the number of neurons in the output layer" << endl;
+        exit(1);
+    }
+    
     Layer outputLayer = this->layers.at(this->layers.size()-1);
     // 1º Err calc in Output
     for (int i = 0; i < this->layers.back().size(); i++) {
@@ -186,16 +206,17 @@ void Net::backPropagation(const vector<double> &correctVals, const string &outpu
     for (int layer = 0; layer < this->layers.size(); layer++) {
         for (int node = 0; node < this->layers.at(layer).size(); node++) {
             for (int connection = 0; connection < this->layers.at(layer).at(node).conections.size(); connection++) {
-                this->layers.at(layer).at(node).conections.at(connection).weight = this->layers.at(layer).at(node).conections.at(connection).weight + (this->learning_rate * this->layers.at(layer).at(node).gradient * this->layers.at(layer).at(node).getOutputVal());
+                this->layers.at(layer).at(node).conections.at(connection).weight = this->layers.at(layer).at(node).conections.at(connection).weight + (this->learning_rate * this->layers.at(layer).at(node).gradientWeight * this->layers.at(layer).at(node).getOutputVal());
+                this->layers.at(layer).at(node).bias = this->layers.at(layer).at(node).bias + (this->learning_rate * this->layers.at(layer).at(node).gradientBias);
             }
         }
     }
 }
 
-void Net::getResults() const {
+void Net::getResults(const vector<double> &correctVals) const {
     cout << "Results:::" << endl;
     for(int i = 0; i < this->layers.back().size(); i++) {
-        cout << "Neuron number " << this->layers.back().at(i).myIndex << ": " << this->layers.back().at(i).getOutputVal() << endl;
+        cout << "Neuron number " << this->layers.back().at(i).myIndex << ": " << this->layers.back().at(i).getOutputVal() << ", should be " << correctVals.at(i) << endl;
     }
 }
 
